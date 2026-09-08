@@ -15,3 +15,6 @@ storage/app/private/*
 
 # CI 설정은 실행 이미지에 포함하지 않습니다.
 .github
+
+# 서버 배포 잠금 파일은 이미지에서 제외합니다.
+.deploy.lock

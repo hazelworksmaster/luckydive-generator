@@ -31,7 +31,7 @@
 docker pull ghcr.io/hazelworksmaster/luckydive-generator:sha-<전체-커밋-SHA>
 ```
 
-현재 작업은 이미지 생성·저장까지만 구성합니다. 기존 prod Compose의 로컬 build 설정은 유지하며, 서버에서 pull한 이미지를 실행하는 Compose 전환과 런타임 환경 설정은 배포 작업에서 별도로 적용합니다.
+서버는 이미지 전용 prod Compose와 `deploy.sh`로 배포합니다. [서버 배포 문서](server-deployment.md)를 따릅니다. GitHub Actions는 서버 배포를 자동 실행하지 않습니다.
 
 빌드 설정은 [Docker 공식 GitHub Actions 문서](https://docs.docker.com/build/ci/github-actions/)를 기준으로 구성했습니다.
 

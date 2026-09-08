@@ -41,7 +41,7 @@ Docker 실행 후 `./scripts/bootstrap.sh`로 의존성과 앱 키를 준비합�
 - 알고리즘: app/Algorithms, 고정·최신 후보: app/Services/Filtered, 직접 수집: app/Services/Lotto
 - 생성 결과와 사용한 후보 기준은 recommendation_runs, 서비스 공개 원본은 LuckyDive가 소유합니다.
 - 테스트는 SQLite :memory:로 강제 격리합니다. 실제 DB migration·데이터 변경은 대상과 영향 확인 후 실행합니다.
-- `./scripts/docker.sh prod build`로 독립 이미지를 만듭니다. 운영 .env·storage 쓰기 권한·후보 적재 용량을 먼저 준비합니다.
+- `bash deploy.sh <이미지 태그>`로 GitHub에서 빌드한 운영 이미지를 내려받아 교체합니다. 운영 .env·storage 쓰기 권한·후보 적재 용량을 먼저 준비합니다.
 - 비밀값은 Git·이미지·로그에 남기지 않습니다. 커밋은 요청할 때만 한글 메시지로 수행합니다.
 - AGENTS.md는 별도 생성 확인을 받지 않아 만들지 않았습니다.
 
@@ -65,3 +65,7 @@ Docker 실행 후 `./scripts/bootstrap.sh`로 의존성과 앱 키를 준비합�
 ## GitHub 이미지 빌드
 
 main push 시 테스트와 운영 이미지 실행 검증 후 GHCR에 이미지를 저장합니다. PR에서는 검증만 수행합니다. 서버 배포와 실제 DB 마이그레이션은 자동 실행하지 않습니다. 이미지 태그·권한·실행 방법은 [GitHub 빌드 문서](docs/github-image-build.md)를 참고하세요.
+
+## 서버 배포
+
+서버에 `deploy.sh`, `compose.prod.yml`, 운영 `.env`를 준비한 뒤 `bash deploy.sh sha-<전체커밋SHA>`를 실행합니다. 실행 절차와 복구 정책은 [서버 배포 문서](docs/server-deployment.md)를 따릅니다.

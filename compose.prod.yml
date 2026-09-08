@@ -1,16 +1,25 @@
 services:
   app:
-    image: luckydive-generator:prod
-    build:
-      context: .
-      dockerfile: docker/php/Dockerfile
-      target: prod
+    # 운영 서버에서는 GitHub에서 빌드한 이미지만 내려받아 실행합니다.
+    image: ${GENERATOR_IMAGE:-ghcr.io/hazelworksmaster/luckydive-generator:main}
     env_file: .env
     environment:
       APP_ENV: production
       APP_DEBUG: "false"
+    # CLI 명령 실행을 위한 대기 상태이며 정기 작업은 별도로 등록합니다.
+    command: ["sleep", "infinity"]
+    init: true
+    restart: unless-stopped
+    stop_grace_period: 60s
     volumes:
       - ./storage:/app/storage
+    healthcheck:
+      # DB나 외부 API를 호출하지 않고 PHP와 저장 경로의 실행 조건을 검사합니다.
+      test: ["CMD", "php", "-r", "exit(is_writable('/app/storage/logs') && is_writable('/app/storage/framework/cache/data') ? 0 : 1);"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
     logging:
       driver: json-file
       options:
