@@ -22,7 +22,7 @@ class SubmissionTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        config(['recommendation.luckydive.base_url' => 'https://service.test', 'recommendation.luckydive.ca_bundle' => null, 'recommendation.luckydive.profiles.random' => ['algorithm' => 'random-v1', 'public_id' => $this->profileId, 'token' => 'private-test-token']]);
+        config(['recommendation.luckydive.base_url' => 'https://service.test', 'recommendation.luckydive.ca_bundle' => null, 'recommendation.luckydive.profiles.random' => ['algorithm' => 'random-v1', 'token' => 'private-test-token']]);
         Http::preventStrayRequests();
     }
 
@@ -58,6 +58,7 @@ class SubmissionTest extends TestCase
         $first = $service->execute('random', $id, true);
         $this->assertSame('submitted', $first['status']);
         $this->assertCount(5, $first['payload']['games']);
+        $this->assertSame($this->profileId, DB::table('submission_outbox')->value('profile_public_id'));
         $this->assertSame($first, $service->execute('random', $id, true));
         $this->assertDatabaseCount('recommendation_runs', 1);
         $this->assertDatabaseCount('submission_outbox', 1);
@@ -115,7 +116,7 @@ class SubmissionTest extends TestCase
         $this->assertSame($first['payload']['games'], $second['payload']['games']);
     }
 
-    /** 미완료 요청의 목적지나 AI가 바뀌면 토큰을 전송하기 전에 차단합니다. */
+    /** 주소 변경은 조회 전에, 토큰의 AI 변경은 인증 조회 후 실제 제출 전에 차단합니다. */
     public function test_destination_change_and_wrong_token_profile_are_blocked(): void
     {
         Http::fake(['*/context' => Http::response($this->context())]);
@@ -125,8 +126,14 @@ class SubmissionTest extends TestCase
         config(['recommendation.luckydive.base_url' => 'https://different.test']);
         $this->artisan('lotto:submit', ['--profile' => 'random', '--request-id' => $id, '--apply' => true])->assertFailed();
         Http::assertSentCount(1);
-        config(['recommendation.luckydive.base_url' => 'https://service.test', 'recommendation.luckydive.profiles.random.public_id' => (string) Str::uuid()]);
-        $this->artisan('lotto:submit', ['--profile' => 'random', '--apply' => true])->assertFailed();
+        config(['recommendation.luckydive.base_url' => 'https://service.test', 'recommendation.luckydive.profiles.random.token' => 'another-profile-token']);
+        $this->profileId = (string) Str::uuid();
+        Http::swap(new Factory);
+        Http::preventStrayRequests();
+        Http::fake(['*/context' => Http::response($this->context())]);
+        $this->artisan('lotto:submit', ['--profile' => 'random', '--request-id' => $id, '--apply' => true])->assertFailed();
+        Http::assertSentCount(1);
+        Http::assertNotSent(fn (Request $r) => $r->method() === 'POST');
         $this->assertDatabaseCount('recommendation_runs', 1);
     }
 

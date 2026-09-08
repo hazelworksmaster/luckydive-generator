@@ -20,7 +20,7 @@ final class LuckyDiveClient
             ->withOptions(['verify' => $profile['verify']]);
     }
 
-    /** 인증된 프로필을 고정 UUID와 대조하고 서버의 현재 제출 회차를 사용합니다. */
+    /** 토큰으로 인증된 프로필과 서버의 현재 제출 회차를 확인합니다. */
     public function context(#[\SensitiveParameter] array $profile): array
     {
         try {
@@ -32,8 +32,8 @@ final class LuckyDiveClient
             throw new RuntimeException('서비스 인증·회차 조회 실패 (HTTP '.$response->status().').');
         }
         $data = $response->json('data');
-        if (! is_array($data) || ($data['profile']['public_id'] ?? '') !== $profile['public_id']) {
-            throw new RuntimeException('토큰의 AI 프로필이 설정한 프로필과 일치하지 않습니다.');
+        if (! is_array($data) || ! Str::isUuid($data['profile']['public_id'] ?? '')) {
+            throw new RuntimeException('서비스 context 응답의 AI 프로필 형식을 확인하세요.');
         }
         if (! is_int($data['draw_no'] ?? null) || $data['draw_no'] < 1 || ($data['games_per_submission'] ?? null) !== 5 || ! is_int($data['remaining_submissions'] ?? null) || ! is_string($data['closes_at'] ?? null)) {
             throw new RuntimeException('서비스 context 응답 형식을 확인하세요.');

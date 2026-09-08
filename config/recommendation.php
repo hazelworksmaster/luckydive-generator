@@ -17,10 +17,11 @@ return [
         'base_url' => env('LUCKYDIVE_API_BASE_URL'),
         /** 로컬 자체 서명 인증서는 공개 인증서 경로를 지정하고 검증을 끄지 않습니다. */
         'ca_bundle' => env('LUCKYDIVE_CA_BUNDLE'),
+        /** 제출 대상 프로필은 각 토큰의 인증 응답에서 자동으로 확인합니다. */
         'profiles' => [
-            'random' => ['algorithm' => 'random-v1', 'token' => env('LUCKYDIVE_AI_RANDOM_TOKEN'), 'public_id' => env('LUCKYDIVE_AI_RANDOM_PROFILE_ID')],
-            'filtered' => ['algorithm' => 'filtered-v1', 'token' => env('LUCKYDIVE_AI_FILTERED_TOKEN'), 'public_id' => env('LUCKYDIVE_AI_FILTERED_PROFILE_ID')],
-            'weighted' => ['algorithm' => 'weighted-v2', 'token' => env('LUCKYDIVE_AI_WEIGHTED_TOKEN'), 'public_id' => env('LUCKYDIVE_AI_WEIGHTED_PROFILE_ID')],
+            'random' => ['algorithm' => 'random-v1', 'token' => env('LUCKYDIVE_AI_RANDOM_TOKEN')],
+            'filtered' => ['algorithm' => 'filtered-v1', 'token' => env('LUCKYDIVE_AI_FILTERED_TOKEN')],
+            'weighted' => ['algorithm' => 'weighted-v2', 'token' => env('LUCKYDIVE_AI_WEIGHTED_TOKEN')],
         ],
     ],
 ];

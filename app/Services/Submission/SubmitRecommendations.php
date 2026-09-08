@@ -31,6 +31,11 @@ final class SubmitRecommendations
             }
         }
         $context = $this->client->context($profile);
+        /** 프로필 ID는 직접 설정하지 않고 토큰 인증 응답에서 가져옵니다. */
+        $profile['public_id'] = $context['profile']['public_id'];
+        if ($row !== null) {
+            $this->assertDestination($row, $profile);
+        }
         if ($row === null) {
             if ($context['remaining_submissions'] < 1 || CarbonImmutable::parse($context['closes_at'])->lessThanOrEqualTo(CarbonImmutable::now())) {
                 throw new RuntimeException('현재 회차의 남은 제출 한도 또는 마감을 확인하세요.');
@@ -109,10 +114,10 @@ final class SubmitRecommendations
         return $this->result(DB::table('submission_outbox')->where('id', $id)->first());
     }
 
-    /** 재시도 중 환경·AI·알고리즘·번호가 바뀌면 다른 제출로 보내지 않고 중단합니다. */
+    /** 설정·본문을 먼저 검사하고 인증 응답을 받은 뒤에는 최초 제출 AI도 비교합니다. */
     private function assertDestination(object $row, #[\SensitiveParameter] array $profile): void
     {
-        if ($row->profile_key !== $profile['key'] || $row->profile_public_id !== $profile['public_id'] || $row->base_url !== $profile['base_url'] || $row->algorithm !== $profile['algorithm']) {
+        if ($row->profile_key !== $profile['key'] || (isset($profile['public_id']) && $row->profile_public_id !== $profile['public_id']) || $row->base_url !== $profile['base_url'] || $row->algorithm !== $profile['algorithm']) {
             throw new RuntimeException('기존 요청과 AI·알고리즘·서비스 주소가 다릅니다. 원래 설정을 사용하세요.');
         }
         $payload = json_decode($row->payload, true, flags: JSON_THROW_ON_ERROR);

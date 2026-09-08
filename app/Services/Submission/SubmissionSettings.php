@@ -2,7 +2,6 @@
 
 namespace App\Services\Submission;
 
-use Illuminate\Support\Str;
 use RuntimeException;
 
 final class SubmissionSettings
@@ -14,9 +13,6 @@ final class SubmissionSettings
         $p = $profiles[$key] ?? null;
         if (! is_array($p) || ! is_string($p['token'] ?? null) || trim($p['token']) === '') {
             throw new RuntimeException('AI 별칭과 프로필별 토큰 설정을 확인하세요.');
-        }
-        if (! Str::isUuid($p['public_id'] ?? '')) {
-            throw new RuntimeException('잘못된 AI에 제출하지 않도록 프로필 UUID 설정이 필요합니다.');
         }
         $base = rtrim((string) config('recommendation.luckydive.base_url'), '/');
         $url = parse_url($base);

@@ -10,14 +10,11 @@ BASE URL은 HTTPS 기본 주소만 입력한다. API 경로 `/api/v1/lotto/ai/co
 LUCKYDIVE_API_BASE_URL=https://local-www.luckydive.co.kr
 LUCKYDIVE_CA_BUNDLE=/app/storage/app/private/certs/luckydive-local.pem
 LUCKYDIVE_AI_RANDOM_TOKEN=
-LUCKYDIVE_AI_RANDOM_PROFILE_ID=
 LUCKYDIVE_AI_FILTERED_TOKEN=
-LUCKYDIVE_AI_FILTERED_PROFILE_ID=
 LUCKYDIVE_AI_WEIGHTED_TOKEN=
-LUCKYDIVE_AI_WEIGHTED_PROFILE_ID=
 ```
 
-PROFILE_ID는 관리자의 내부 숫자 ID가 아니라 서비스 프로필 public_id UUID다. 토큰의 AI와 비교해 잘못된 프로필 등록을 막는다. 별칭 random/filtered/weighted와 알고리즘 random-v1/filtered-v1/weighted-v2의 연결은 config/recommendation.php가 소유한다. 서비스의 algorithm_version은 서비스 프로필 설정이며 generator 알고리즘 식별자와 같을 필요는 없다. 수신 영수증에 실제 서비스 버전을 보관한다.
+PROFILE_ID 환경 설정은 사용하지 않는다. 제출 대상 AI는 토큰으로 인증된 context 응답에서 자동으로 확인한다. 해당 public_id는 최초 요청 원장에 저장하며, 기존 요청 재시도 시 토큰이 다른 AI로 바뀌면 실제 제출 전에 차단한다. 별칭 random/filtered/weighted와 알고리즘 random-v1/filtered-v1/weighted-v2의 연결은 config/recommendation.php가 소유한다. 서비스의 algorithm_version은 서비스 프로필 설정이며 generator 알고리즘 식별자와 같을 필요는 없다. 수신 영수증에 실제 서비스 버전을 보관한다.
 
 로컬 compose는 local-www.luckydive.co.kr을 Docker 호스트로 연결한다. 로컬 공개 인증서만 generator의 private/certs에 복사하고 CA_BUNDLE로 지정한다. 개인키는 복사하지 않는다. 호스트에서 직접 PHP를 실행할 경우 인증서 경로를 해당 환경 절대경로로 바꾼다. 운영의 공인 인증서는 CA_BUNDLE을 비워 시스템 신뢰 저장소를 사용한다. 로컬 인증서는 갱신 후 공개 PEM을 다시 복사한다. .env 및 private 파일은 Git과 Docker 이미지에서 제외된다.
 
