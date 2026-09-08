@@ -7,7 +7,7 @@ PHP 8.4·Laravel 13 기반 독립 CLI 프로젝트입니다. 랜덤 생성, 공�
 - random-v1과 생성 원장 migration은 개발 DB에서 사용 가능합니다.
 - filtered-v1 관련 테이블·metadata migration은 2026-09-08 사용자 승인 후 개발 DB에 적용했습니다.
 - 1~1240회 당첨 이력과 고정 후보·filter5·filter6 적재를 완료했습니다. 현재 filtered-v1은 1241회 대상 생성이 가능합니다.
-- API 제출·자동 스케줄·weighted 이전·기존 draw 중단은 아직 수행하지 않았습니다.
+- weighted-v2 이전과 AI 프로필별 API 제출 기능을 구현했습니다. 실제 API 제출·자동 스케줄 등록·기존 draw 중단은 수행하지 않았습니다.
 
 ## 시작
 
@@ -61,3 +61,7 @@ Docker 실행 후 `./scripts/bootstrap.sh`로 의존성과 앱 키를 준비합�
 ## AI 프로필별 서비스 등록
 
 `lotto:submit --profile=weighted --dry-run`으로 전송 계획을 확인하고, `--apply`로 5게임을 생성·저장·등록합니다. 오류 시 출력된 `--request-id`를 그대로 재사용합니다. 원장 migration이 먼저 필요하며 설정·로컬 HTTPS·준비만 실행·재시도 정책은 [등록 연동 문서](docs/submission-api-integration.md)를 따릅니다. 인증된 dry-run도 서비스의 토큰 마지막 사용 시각은 갱신합니다.
+
+## GitHub 이미지 빌드
+
+main push 시 테스트와 운영 이미지 실행 검증 후 GHCR에 이미지를 저장합니다. PR에서는 검증만 수행합니다. 서버 배포와 실제 DB 마이그레이션은 자동 실행하지 않습니다. 이미지 태그·권한·실행 방법은 [GitHub 빌드 문서](docs/github-image-build.md)를 참고하세요.

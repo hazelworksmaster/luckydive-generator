@@ -1,0 +1,95 @@
+name: Docker 이미지 빌드
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# 패키지 업로드 단계는 main에서만 실행하며 PR에서는 로그인하지 않습니다.
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: docker-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - name: 소스 체크아웃
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Docker 빌더 준비
+        uses: docker/setup-buildx-action@v4
+
+      - name: 테스트 런타임 빌드
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: local
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: generator:test-runtime
+          cache-from: type=gha,scope=generator-runtime
+          cache-to: type=gha,mode=max,scope=generator-runtime
+
+      - name: 테스트 의존성 설치
+        run: |
+          docker run --rm --user "$(id -u):$(id -g)" \
+            --volume "$GITHUB_WORKSPACE:/app" \
+            generator:test-runtime composer install --no-interaction --prefer-dist
+
+      # 메모리 DB 강제 설정과 네트워크 차단으로 실제 서비스 접속을 막습니다.
+      - name: 격리된 자동화 테스트
+        run: |
+          docker run --rm --network none --user "$(id -u):$(id -g)" \
+            --env APP_ENV=testing --env DB_CONNECTION=sqlite --env DB_DATABASE=:memory: \
+            --volume "$GITHUB_WORKSPACE:/app" \
+            generator:test-runtime composer test
+
+      - name: 운영 이미지 빌드
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/php/Dockerfile
+          target: prod
+          platforms: linux/amd64
+          load: true
+          push: false
+          tags: generator:ci
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+          cache-from: type=gha,scope=generator-prod
+          cache-to: type=gha,mode=max,scope=generator-prod
+
+      # 저장하지 않는 랜덤 생성으로 운영 이미지의 CLI 실행을 확인합니다.
+      - name: 운영 이미지 실행 검증
+        run: |
+          docker run --rm --network none generator:ci \
+            php artisan lotto:generate --algorithm=random-v1 --count=5 --dry-run
+
+      # 실행 검증을 마친 같은 이미지만 저장하며 서버 명령은 실행하지 않습니다.
+      - name: GHCR에 이미지 저장
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GHCR_USER: ${{ github.actor }}
+        run: |
+          image="ghcr.io/${GITHUB_REPOSITORY,,}"
+          printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USER" --password-stdin
+          trap 'docker logout ghcr.io' EXIT
+          docker tag generator:ci "$image:sha-$GITHUB_SHA"
+          docker tag generator:ci "$image:main"
+          docker push "$image:sha-$GITHUB_SHA"
+          docker push "$image:main"
+          printf '빌드 이미지: `%s:sha-%s`\n' "$image" "$GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"

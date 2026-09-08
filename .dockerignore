@@ -12,3 +12,6 @@ bootstrap/cache/*.php
 
 # 로컬 공개 인증서 및 반입·출력 파일은 운영 이미지에 포함하지 않습니다.
 storage/app/private/*
+
+# CI 설정은 실행 이미지에 포함하지 않습니다.
+.github
