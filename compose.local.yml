@@ -1,0 +1,18 @@
+services:
+  app:
+    image: luckydive-generator:local
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+      target: local
+    # 로컬 사용자 웹은 Docker 호스트의 HTTPS 포트로 연결합니다.
+    extra_hosts:
+      - "local-www.luckydive.co.kr:host-gateway"
+    working_dir: /app
+    volumes:
+      - .:/app
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
