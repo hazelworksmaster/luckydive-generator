@@ -10,7 +10,7 @@ use RuntimeException;
 
 final class SubmitRecommendationsCommand extends Command
 {
-    protected $signature = 'lotto:submit {--profile= : AI 별칭 random/filtered/weighted} {--request-id= : 재시도할 원래 요청 UUID} {--apply : 생성 이력 저장 및 실제 API 등록} {--dry-run : context 및 전송 계획만 확인} {--prepare-only : apply와 함께 사용해 요청 저장까지만 실행}';
+    protected $signature = 'lotto:submit {--profile= : AI 별칭 random/filtered/weighted/overdue} {--request-id= : 재시도할 원래 요청 UUID} {--apply : 생성 이력 저장 및 실제 API 등록} {--dry-run : context 및 전송 계획만 확인} {--prepare-only : apply와 함께 사용해 요청 저장까지만 실행}';
 
     protected $description = 'AI별 토큰으로 정확히 5게임을 등록하며 실패 시 같은 UUID로 재전송합니다';
 

@@ -69,3 +69,15 @@ main push 시 테스트와 운영 이미지 실행 검증 후 GHCR에 이미지�
 ## 서버 배포
 
 서버에 `deploy.sh`, `compose.prod.yml`, 운영 `.env`를 준비한 뒤 `bash deploy.sh sha-<전체커밋SHA>`를 실행합니다. 실행 절차와 복구 정책은 [서버 배포 문서](docs/server-deployment.md)를 따릅니다.
+
+## 미출현·궁합 연결 추천
+
+`overdue-chain-v1`은 직전 회차까지의 당첨 이력으로 결정적인 5조합을 만듭니다. 후보 테이블이나 추가 migration 없이 동작합니다.
+
+```sh
+./scripts/docker.sh local run --rm app php artisan lotto:generate --algorithm=overdue-chain-v1 --dry-run
+# 과거 기준 재현: 1239회까지만 읽어 1240회 대상 조합을 생성합니다.
+./scripts/docker.sh local run --rm app php artisan lotto:generate --algorithm=overdue-chain-v1 --draw-no=1240 --dry-run
+```
+
+이 알고리즘은 `--count=5`만 허용합니다. 저장은 기존 `--save`로 명시하며 같은 이력으로 다시 실행하면 같은 조합이 나옵니다. 상세 규칙과 종료·효율 검토는 [알고리즘 문서](agents/overdue-chain-algorithm.md)를 참고하세요.
