@@ -38,6 +38,8 @@ class OverdueChainGeneratorTest extends TestCase
     {
         $service = app(GenerateNumbers::class);
         $first = $service->execute(5, null, false, 'overdue-chain-v1');
+        self::assertCount(30, array_unique(array_merge(...$first['games'])));
+        self::assertSame('disjoint-games-v2', $first['metadata']['selection_rule']);
         self::assertSame(4, $first['draw_no']);
         self::assertSame(3, $first['metadata']['basis_round']);
         self::assertSame([7, 8, 9, 10, 11, 12], $first['metadata']['traces'][0]['chain']);

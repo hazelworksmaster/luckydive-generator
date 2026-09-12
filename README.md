@@ -80,4 +80,4 @@ main push 시 테스트와 운영 이미지 실행 검증 후 GHCR에 이미지�
 ./scripts/docker.sh local run --rm app php artisan lotto:generate --algorithm=overdue-chain-v1 --draw-no=1240 --dry-run
 ```
 
-이 알고리즘은 `--count=5`만 허용합니다. 저장은 기존 `--save`로 명시하며 같은 이력으로 다시 실행하면 같은 조합이 나옵니다. 상세 규칙과 종료·효율 검토는 [알고리즘 문서](agents/overdue-chain-algorithm.md)를 참고하세요.
+미출현 기간이 긴 미사용 번호부터 궁합수를 연결하며, 5게임 전체의 30개 번호는 서로 중복되지 않습니다. 이 알고리즘은 `--count=5`만 허용합니다. 저장은 기존 `--save`로 명시하며 같은 이력으로 다시 실행하면 같은 조합이 나옵니다. 상세 규칙과 종료·효율 검토는 [알고리즘 문서](agents/overdue-chain-algorithm.md)를 참고하세요.
