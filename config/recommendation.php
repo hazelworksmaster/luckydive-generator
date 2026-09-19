@@ -1,6 +1,7 @@
 <?php
 
 use App\Algorithms\FilteredGenerator;
+use App\Algorithms\FrequentSpreadGenerator;
 use App\Algorithms\OverdueChainGenerator;
 use App\Algorithms\RandomGenerator;
 use App\Algorithms\WeightedGenerator;
@@ -10,6 +11,7 @@ return [
     'algorithm' => 'random-v1',
     /** 알고리즘 추가 시 버전 식별자와 구현 클래스를 등록합니다. */
     'algorithms' => [
+        'frequent-spread-v1' => FrequentSpreadGenerator::class,
         'overdue-chain-v1' => OverdueChainGenerator::class,
         'weighted-v2' => WeightedGenerator::class,
         'filtered-v1' => FilteredGenerator::class,
@@ -21,6 +23,8 @@ return [
         'ca_bundle' => env('LUCKYDIVE_CA_BUNDLE'),
         /** 제출 대상 프로필은 각 토큰의 인증 응답에서 자동으로 확인합니다. */
         'profiles' => [
+            /** 자주 나온 번호 분산 생성기의 전용 프로필 토큰을 사용합니다. */
+            'frequent' => ['algorithm' => 'frequent-spread-v1', 'token' => env('LUCKYDIVE_AI_FREQUENT_TOKEN')],
             /** 미출현·궁합 연결 생성기의 전용 프로필 토큰을 사용합니다. */
             'overdue' => ['algorithm' => 'overdue-chain-v1', 'token' => env('LUCKYDIVE_AI_OVERDUE_TOKEN')],
             'random' => ['algorithm' => 'random-v1', 'token' => env('LUCKYDIVE_AI_RANDOM_TOKEN')],

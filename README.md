@@ -81,3 +81,24 @@ main push 시 테스트와 운영 이미지 실행 검증 후 GHCR에 이미지�
 ```
 
 미출현 기간이 긴 미사용 번호부터 궁합수를 연결하며, 5게임 전체의 30개 번호는 서로 중복되지 않습니다. 이 알고리즘은 `--count=5`만 허용합니다. 저장은 기존 `--save`로 명시하며 같은 이력으로 다시 실행하면 같은 조합이 나옵니다. 상세 규칙과 종료·효율 검토는 [알고리즘 문서](agents/overdue-chain-algorithm.md)를 참고하세요.
+
+## 자주 나온 번호 분산 추천
+
+역대 출현 상위 5개 번호를 시작 번호로 예약하고, 마지막 번호와 함께 나온 횟수가 적은 번호를 연결합니다. 5게임 전체 30개 번호는 중복되지 않습니다.
+
+```bash
+./scripts/docker.sh local run --rm app php artisan lotto:generate --algorithm=frequent-spread-v1 --dry-run
+# 운영 이미지 반영 후 저장 없이 생성
+ docker compose -p luckydive-generator-prod -f compose.prod.yml exec -T app php artisan lotto:generate --algorithm=frequent-spread-v1 --dry-run
+```
+
+정확히 5게임을 생성하며 `--draw-no`로 과거 대상 회차를 지정할 수 있습니다. `--save`는 생성기 DB에 저장하며 www 제출은 수행하지 않습니다. 상세 규칙은 [알고리즘 문서](agents/frequent-spread-algorithm.md)를 참고하세요.
+
+자주 나온 번호 분산 생성기의 서비스 제출은 `.env`에 `LUCKYDIVE_AI_FREQUENT_TOKEN`으로 해당 AI 프로필의 토큰을 입력한 뒤 실행합니다. BASE URL은 기존 `LUCKYDIVE_API_BASE_URL`을 사용합니다.
+
+```bash
+# 프로필과 전송 계획 확인(context 조회는 서비스의 토큰 사용 시각을 갱신할 수 있음)
+docker compose -p luckydive-generator-prod -f compose.prod.yml exec -T app php artisan lotto:submit --profile=frequent --dry-run
+# 실제 생성·저장·서비스 제출
+docker compose -p luckydive-generator-prod -f compose.prod.yml exec -T app php artisan lotto:submit --profile=frequent --apply
+```

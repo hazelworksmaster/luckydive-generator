@@ -9,41 +9,10 @@ final class ChainPlanner
     /** 전체 이력을 한 번 순회하며 보너스를 제외한 빈도·마지막 출현·동반 출현을 계산합니다. */
     public function build(array $rows, int $basis): array
     {
-        if ($basis < 1 || count($rows) !== $basis) {
-            throw new RuntimeException('1회부터 기준 회차까지 당첨번호를 먼저 수집하세요.');
-        }
-        $frequency = $last = array_fill(1, 45, 0);
-        $pairs = array_fill(1, 45, array_fill(1, 45, 0));
-        $canonical = [];
-        foreach ($rows as $index => $row) {
-            $round = $index + 1;
-            if ((int) $row['round'] !== $round) {
-                throw new RuntimeException('당첨 이력에 누락 또는 중복 회차가 있습니다.');
-            }
-            $numbers = [];
-            foreach (range(1, 6) as $position) {
-                $number = filter_var($row['number'.$position] ?? null, FILTER_VALIDATE_INT);
-                if ($number === false || $number < 1 || $number > 45 || in_array($number, $numbers, true)) {
-                    throw new RuntimeException('당첨번호는 중복 없는 1~45의 정수 6개여야 합니다.');
-                }
-                $numbers[] = $number;
-                $frequency[$number]++;
-                $last[$number] = $round;
-            }
-            sort($numbers, SORT_NUMERIC);
-            $canonical[] = [$round, $numbers];
-            for ($i = 0; $i < 6; $i++) {
-                for ($j = $i + 1; $j < 6; $j++) {
-                    $pairs[$numbers[$i]][$numbers[$j]]++;
-                    $pairs[$numbers[$j]][$numbers[$i]]++;
-                }
-            }
-        }
-        $missing = array_map(fn ($round) => $basis - $round, $last);
-        /** array_map은 단일 입력의 숫자 키를 보존하므로 번호 1~45를 그대로 조회합니다. */
-        $result = $this->select($frequency, $missing, $pairs);
+        $statistics = (new \App\Services\Lotto\NumberHistoryStatistics)->build($rows, $basis);
+        $result = $this->select($statistics['frequency'], $statistics['missing'], $statistics['pairs']);
 
-        return [...$result, 'draws_hash' => hash('sha256', json_encode($canonical, JSON_THROW_ON_ERROR))];
+        return [...$result, 'draws_hash' => $statistics['draws_hash']];
     }
 
     /** 미출현 순으로 시작하고 5게임 전체에서 사용한 번호를 제외하며 유한 단계로 연결합니다. */
