@@ -7,8 +7,8 @@ use PHPUnit\Framework\TestCase;
 
 class SpreadPlannerTest extends TestCase
 {
-    /** 전체 번호 동률·궁합 0회에서도 시작 번호를 예약하고 30개를 유일하게 만듭니다. */
-    public function test_reserved_seeds_and_zero_pairs_complete_disjoint_games(): void
+    /** 시작 번호 예약을 유지하고 직전 중복 2개와 비인접 게임의 번호 재사용을 허용합니다. */
+    public function test_reserved_seeds_and_adjacent_overlap_with_zero_pairs(): void
     {
         $frequency = array_fill(1, 45, 0);
         $pairs = array_fill(1, 45, array_fill(1, 45, 0));
@@ -16,12 +16,16 @@ class SpreadPlannerTest extends TestCase
         $result = $planner->select($frequency, $pairs);
         self::assertSame([1, 2, 3, 4, 5], $result['seeds']);
         self::assertSame([1, 6, 7, 8, 9, 10], $result['traces'][0]['chain']);
-        self::assertSame([5, 26, 27, 28, 29, 30], $result['traces'][4]['chain']);
+        self::assertSame([2, 6, 7, 11, 12, 13], $result['traces'][1]['chain']);
+        self::assertGreaterThan(2, count(array_intersect($result['games'][0], $result['games'][2])));
         self::assertCount(5, $result['games']);
-        self::assertCount(30, array_unique(array_merge(...$result['games'])));
+        self::assertCount(5, array_unique(array_map('serialize', $result['games'])));
         self::assertSame($result, $planner->select($frequency, $pairs));
         foreach ($result['games'] as $index => $game) {
-            self::assertCount(6, $game);
+            self::assertCount(6, array_unique($game));
+            if ($index > 0) {
+                self::assertCount(2, array_intersect($game, $result['games'][$index - 1]));
+            }
             self::assertSame([$result['seeds'][$index]], array_values(array_intersect($game, $result['seeds'])));
         }
     }
@@ -40,6 +44,6 @@ class SpreadPlannerTest extends TestCase
         $result = (new SpreadPlanner)->select($frequency, $pairs);
         self::assertSame([45, 44, 43, 42, 41], $result['seeds']);
         self::assertSame([45, 2, 30], array_slice($result['traces'][0]['chain'], 0, 3));
-        self::assertCount(30, array_unique(array_merge(...$result['games'])));
+        self::assertCount(5, array_unique(array_map('serialize', $result['games'])));
     }
 }

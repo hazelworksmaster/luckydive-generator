@@ -3,6 +3,7 @@
 namespace App\Algorithms;
 
 use App\Algorithms\Contracts\ContextualNumberGenerator;
+use App\Algorithms\Rules\PreviousGameOverlap;
 use App\Services\Filtered\FilterRules;
 use App\Services\Filtered\PipelineState;
 use App\Services\Lotto\LottoDrawCalendar;
@@ -27,7 +28,7 @@ final class FilteredGenerator implements ContextualNumberGenerator
         return $this->generateContext($count, null)['games'];
     }
 
-    /** 연속 순번을 균등 추출하고 후보를 일괄 조회합니다. */
+    /** 연속 순번의 무작위 후보를 묶어 조회하고 직전 확정 게임과의 중복을 검사합니다. */
     public function generateContext(int $count, ?int $drawNo): array
     {
         if ($count < 1 || $count > 100) {
@@ -50,19 +51,39 @@ final class FilteredGenerator implements ContextualNumberGenerator
             if ($total < $count) {
                 throw new RuntimeException('요청한 게임 수만큼 후보가 없습니다.');
             }
-            /** 연속 후보 ID에서 서로 다른 난수를 뽑아 한 번에 조회합니다. */
-            $ids = [];
-            while (count($ids) < $count) {
-                $ids[random_int(1, $total)] = true;
+            $overlap = new PreviousGameOverlap;
+            $games = $selected = [];
+            $attempts = 0;
+            /** DB 조회를 묶되 난수 순서를 유지하고, 거부한 후보는 다음 게임에서 다시 허용합니다. */
+            while (count($games) < $count && $attempts < 10000) {
+                $ids = [];
+                $batchSize = min(100, 10000 - $attempts);
+                for ($i = 0; $i < $batchSize; $i++) {
+                    $ids[] = random_int(1, $total);
+                }
+                $attempts += $batchSize;
+                $rows = DB::table('filter6_numbers')->whereIn('id', array_unique($ids))->get()->keyBy('id');
+                if ($rows->count() !== count(array_unique($ids))) {
+                    throw new RuntimeException('후보 순번이 손상되어 다시 준비해야 합니다.');
+                }
+                foreach ($ids as $id) {
+                    if (isset($selected[$id])) {
+                        continue;
+                    }
+                    $game = $this->rules->numbers((array) $rows[$id]);
+                    if (! $overlap->allows($game, $games)) {
+                        continue;
+                    }
+                    $selected[$id] = true;
+                    $games[] = $game;
+                    if (count($games) === $count) {
+                        break;
+                    }
+                }
             }
-            $rows = DB::table('filter6_numbers')->whereIn('id', array_keys($ids))->get()->keyBy('id');
-            if ($rows->count() !== $count) {
-                throw new RuntimeException('후보 순번이 손상되어 다시 준비해야 합니다.');
-            }
-            /** DB 반환 순서와 무관하게 난수를 추출한 순서로 게임을 반환합니다. */
-            $games = [];
-            foreach (array_keys($ids) as $id) {
-                $games[] = $this->rules->numbers((array) $rows[$id]);
+            /** 제한에 도달하면 조건을 완화하거나 부분 결과를 저장하지 않습니다. */
+            if (count($games) !== $count) {
+                throw new RuntimeException('직전 게임과 최대 2개 중복 조건을 만족하는 필터 조합을 만들지 못했습니다. 후보 구성을 확인하거나 다시 실행하세요.');
             }
 
             return ['games' => $games, 'draw_no' => $target, 'metadata' => ['basis_round' => $latest, 'draws_hash' => $hash, 'base_version' => $state->base_version, 'prepared_at' => $state->prepared_at, 'statistics' => json_decode($state->statistics, true, 512, JSON_THROW_ON_ERROR)]];

@@ -3,6 +3,7 @@
 namespace App\Algorithms;
 
 use App\Algorithms\Contracts\RecordsSelections;
+use App\Algorithms\Rules\PreviousGameOverlap;
 use App\Services\Filtered\FilterRules;
 use App\Services\Weighted\WeightedState;
 use Illuminate\Support\Facades\DB;
@@ -49,27 +50,41 @@ final class WeightedGenerator implements RecordsSelections
             $excluded = [];
             $games = [];
             $selection = [];
+            $overlap = new PreviousGameOverlap;
+            $attempts = 0;
             while (count($games) < $count) {
                 $start = $randomizer->getInt(1, (int) $pool->entry_count);
+                /** 중복 때문에 거부한 후보는 직전 게임이 바뀌면 다시 선택할 수 있습니다. */
+                $skipped = [];
                 while (true) {
+                    if (++$attempts > 10000) {
+                        throw new RuntimeException('직전 게임과 최대 2개 중복 조건을 만족하는 가중 조합을 만들지 못했습니다. 다시 실행하세요.');
+                    }
+                    $unavailable = [...$excluded, ...$skipped];
                     $query = DB::table('weighted_pool_entries as e')
                         ->where('e.pool_id', $pool->id)
                         ->whereNotIn('e.combination_id', DB::table('weighted_selections')->select('combination_id')->where('target_round', $snapshot['target_round']))
-                        ->when($excluded !== [], fn ($q) => $q->whereNotIn('e.id', $excluded));
+                        ->when($unavailable !== [], fn ($q) => $q->whereNotIn('e.id', $unavailable));
                     $row = (clone $query)->where('e.sequence', '>=', $start)->orderBy('e.sequence')->first()
                         ?? (clone $query)->where('e.sequence', '<', $start)->orderBy('e.sequence')->first();
                     if ($row === null) {
-                        throw new RuntimeException('요청한 게임 수만큼 미발급 가중 후보가 없습니다.');
+                        throw new RuntimeException('직전 게임과 최대 2개 중복 조건을 만족하는 미발급 가중 후보가 없습니다.');
                     }
-                    $excluded[] = (int) $row->id;
+                    $skipped[] = (int) $row->id;
                     $numbers = $this->rules->numbers((array) $row);
                     $winner = DB::table('winning_numbers')->where('round', '<=', $snapshot['basis_round']);
                     foreach ($numbers as $index => $number) {
                         $winner->where('number'.($index + 1), $number);
                     }
                     if ($winner->exists()) {
+                        $excluded[] = (int) $row->id;
                         continue;
                     }
+                    if (! $overlap->allows($numbers, $games)) {
+                        continue;
+                    }
+                    /** 확정 후보만 실행 전체에서 제외하고 저장 시 발급 이력을 남깁니다. */
+                    $excluded[] = (int) $row->id;
                     $games[] = $numbers;
                     $selection[] = ['entry_id' => (int) $row->id, 'combination_id' => (int) $row->combination_id];
                     break;

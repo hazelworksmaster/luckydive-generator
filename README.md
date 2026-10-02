@@ -80,11 +80,11 @@ main push 시 테스트와 운영 이미지 실행 검증 후 GHCR에 이미지�
 ./scripts/docker.sh local run --rm app php artisan lotto:generate --algorithm=overdue-chain-v1 --draw-no=1240 --dry-run
 ```
 
-미출현 기간이 긴 미사용 번호부터 궁합수를 연결하며, 5게임 전체의 30개 번호는 서로 중복되지 않습니다. 이 알고리즘은 `--count=5`만 허용합니다. 저장은 기존 `--save`로 명시하며 같은 이력으로 다시 실행하면 같은 조합이 나옵니다. 상세 규칙과 종료·효율 검토는 [알고리즘 문서](agents/overdue-chain-algorithm.md)를 참고하세요.
+미출현 기간이 긴 번호부터 궁합수를 연결하며, 바로 직전 게임과 최대 2개까지 번호 중복을 허용합니다. 이 알고리즘은 `--count=5`만 허용합니다. 저장은 기존 `--save`로 명시하며 같은 이력으로 다시 실행하면 같은 조합이 나옵니다. 상세 규칙과 종료·효율 검토는 [알고리즘 문서](agents/overdue-chain-algorithm.md)를 참고하세요.
 
 ## 자주 나온 번호 분산 추천
 
-역대 출현 상위 5개 번호를 시작 번호로 예약하고, 마지막 번호와 함께 나온 횟수가 적은 번호를 연결합니다. 5게임 전체 30개 번호는 중복되지 않습니다.
+역대 출현 상위 5개 번호를 시작 번호로 예약하고, 마지막 번호와 함께 나온 횟수가 적은 번호를 연결합니다. 각 게임의 시작 번호는 전용으로 유지하며, 연결 번호는 직전 게임과 최대 2개까지 중복을 허용합니다.
 
 ```bash
 ./scripts/docker.sh local run --rm app php artisan lotto:generate --algorithm=frequent-spread-v1 --dry-run
@@ -101,4 +101,12 @@ main push 시 테스트와 운영 이미지 실행 검증 후 GHCR에 이미지�
 docker compose -p luckydive-generator-prod -f compose.prod.yml exec -T app php artisan lotto:submit --profile=frequent --dry-run
 # 실제 생성·저장·서비스 제출
 docker compose -p luckydive-generator-prod -f compose.prod.yml exec -T app php artisan lotto:submit --profile=frequent --apply
+```
+
+## 공통 규칙: 직전 게임과 최대 2개 중복
+
+모든 알고리즘은 바로 직전 게임과 같은 번호를 최대 2개까지만 허용합니다. 첫 게임에는 적용하지 않고 더 앞선 게임과의 일부 번호 중복은 제한하지 않습니다. 기존 동일 조합 중복 제외는 유지합니다. 현재 랜덤·필터드·가중치·미출현·자주 나온 번호 분산에 적용하며 [공통 규칙](agents/common-generation-rules.md)에 상세 내용을 기록합니다.
+
+```bash
+php artisan lotto:generate --algorithm=random-v1 --count=5 --dry-run
 ```

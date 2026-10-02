@@ -44,7 +44,7 @@ final class FrequentSpreadGenerator implements ContextualNumberGenerator
 
         return ['games' => $result['games'], 'draw_no' => $target, 'metadata' => [
             /** 기존 요청과 구별할 수 있도록 게임 간 중복 제외 규칙을 기록합니다. */
-            'selection_rule' => 'frequent-spread-v1',
+            'selection_rule' => 'previous-overlap-v2',
             'basis_round' => $basis, 'draws_hash' => $result['draws_hash'],
             'seeds' => $result['seeds'], 'traces' => $result['traces'],
         ]];

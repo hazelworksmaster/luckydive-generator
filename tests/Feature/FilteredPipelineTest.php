@@ -98,6 +98,47 @@ class FilteredPipelineTest extends TestCase
         $this->assertDatabaseCount('recommendation_runs', 1);
     }
 
+    /** 선택 정책만 검증하도록 메모리 DB의 준비 완료 후보를 작은 집합으로 교체합니다. */
+    private function replaceReadyCandidates(array $games): void
+    {
+        $this->seedCandidates();
+        $this->app->make(PrepareFilteredCandidates::class)->execute(true);
+        DB::table('filter6_numbers')->delete();
+        $rules = new FilterRules;
+        foreach ($games as $index => $game) {
+            DB::table('filter6_numbers')->insert($rules->row($index + 1, $game));
+        }
+        DB::table('filtered_pipeline_state')->where('id', 1)->update(['filter6_count' => count($games)]);
+    }
+
+    /** 실제 필터 생성·저장 경로에서 중복 2개는 허용하고 후보 원본은 유지합니다. */
+    public function test_filtered_generation_allows_two_shared_numbers(): void
+    {
+        $candidates = [[1, 2, 3, 4, 5, 6], [1, 2, 7, 8, 9, 10],
+            [1, 2, 11, 12, 13, 14], [1, 2, 15, 16, 17, 18], [1, 2, 19, 20, 21, 22]];
+        $this->replaceReadyCandidates($candidates);
+        $result = $this->app->make(GenerateNumbers::class)->execute(5, 2, true, 'filtered-v1');
+        $this->assertEqualsCanonicalizing($candidates, $result['games']);
+        foreach ($result['games'] as $index => $game) {
+            if ($index > 0) {
+                $this->assertCount(2, array_intersect($game, $result['games'][$index - 1]));
+            }
+        }
+        $this->assertDatabaseCount('filter6_numbers', 5);
+        $this->assertDatabaseCount('recommendation_runs', 1);
+    }
+
+    /** 모든 후보가 3개씩 겹치면 유한 횟수 후 실패하며 부분 결과를 저장하지 않습니다. */
+    public function test_incompatible_filtered_candidates_fail_without_saving(): void
+    {
+        $this->replaceReadyCandidates([[1, 2, 3, 4, 5, 6], [1, 2, 3, 7, 8, 9]]);
+        $this->artisan('lotto:generate', ['--algorithm' => 'filtered-v1', '--count' => 2, '--save' => true])
+            ->expectsOutputToContain('최대 2개 중복 조건')->assertFailed();
+        $this->assertDatabaseCount('recommendation_runs', 0);
+        $this->assertDatabaseCount('filter6_numbers', 2);
+        $this->artisan('lotto:generate', ['--algorithm' => 'filtered-v1', '--count' => 1, '--dry-run' => true])->assertSuccessful();
+    }
+
     /** 정정은 후보를 무효화하고 내용이 같을 때는 준비 상태를 유지합니다. */
     public function test_correction_invalidates_candidates(): void
     {

@@ -38,8 +38,12 @@ class FrequentSpreadGeneratorTest extends TestCase
     {
         $service = app(GenerateNumbers::class);
         $first = $service->execute(5, null, false, 'frequent-spread-v1');
-        self::assertCount(30, array_unique(array_merge(...$first['games'])));
-        self::assertSame('frequent-spread-v1', $first['metadata']['selection_rule']);
+        foreach ($first['games'] as $index => $game) {
+            if ($index > 0) {
+                self::assertLessThanOrEqual(2, count(array_intersect($game, $first['games'][$index - 1])));
+            }
+        }
+        self::assertSame('previous-overlap-v2', $first['metadata']['selection_rule']);
         self::assertSame(4, $first['draw_no']);
         self::assertSame(3, $first['metadata']['basis_round']);
         self::assertSame([1, 7, 8, 9, 10, 11], $first['metadata']['traces'][0]['chain']);
@@ -51,7 +55,7 @@ class FrequentSpreadGeneratorTest extends TestCase
     }
 
     /** 전용 별칭의 실제 생성과 전송 본문을 메모리 DB·가짜 API로 검증합니다. */
-    public function test_frequent_profile_submits_disjoint_games(): void
+    public function test_frequent_profile_submits_games_with_adjacent_overlap_limit(): void
     {
         self::assertSame('frequent-spread-v1', config('recommendation.luckydive.profiles.frequent.algorithm'));
         config(['recommendation.luckydive.base_url' => 'https://service.test',
@@ -84,7 +88,8 @@ class FrequentSpreadGeneratorTest extends TestCase
             $request->method() === 'POST'
             && $request->hasHeader('Authorization', 'Bearer test-frequent-token')
             && count($request['games']) === 5
-            && count(array_unique(array_merge(...$request['games']))) === 30);
+            && collect($request['games'])->every(fn ($game, $index) => $index === 0
+                || count(array_intersect($game, $request['games'][$index - 1])) <= 2));
     }
 
     /** 과거 재현은 뒤 회차 정정에 영향받지 않고 보너스도 통계에 사용하지 않습니다. */

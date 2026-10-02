@@ -38,27 +38,25 @@ class ChainPlannerTest extends TestCase
         }
     }
 
-    /** 이미 사용한 시작 번호를 건너뛰고 정확히 5번의 연결로 중복 없는 30개를 만듭니다. */
-    public function test_used_seeds_are_skipped_and_five_disjoint_games_finish(): void
+    /** 직전 게임의 시작 번호 재사용과 2개 중복을 허용하고 전체 반복은 유한합니다. */
+    public function test_adjacent_overlap_allows_two_and_finishes_with_unique_games(): void
     {
         $frequency = $missing = array_fill(1, 45, 0);
         $pairs = array_fill(1, 45, array_fill(1, 45, 0));
-        foreach (array_chunk(range(1, 45), 6) as $block) {
-            foreach ($block as $left) {
-                foreach ($block as $right) {
-                    $pairs[$left][$right] = 100;
-                }
-            }
-        }
         $result = (new ChainPlanner)->select($frequency, $missing, $pairs);
-        self::assertSame([1, 7, 13, 19, 25], $result['attempted_seeds']);
-        self::assertCount(30, array_unique(array_merge(...$result['games'])));
+        self::assertSame([1, 2], array_slice(array_column($result['traces'], 'seed'), 0, 2));
+        self::assertSame([2, 1, 7, 8, 9, 10], $result['traces'][1]['chain']);
         self::assertCount(5, array_unique(array_map('json_encode', $result['games'])));
-        foreach ($result['games'] as $game) {
+        self::assertLessThanOrEqual(45, count($result['attempted_seeds']));
+        foreach ($result['games'] as $index => $game) {
             self::assertCount(6, array_unique($game));
             self::assertGreaterThanOrEqual(1, min($game));
             self::assertLessThanOrEqual(45, max($game));
+            if ($index > 0) {
+                self::assertLessThanOrEqual(2, count(array_intersect($game, $result['games'][$index - 1])));
+            }
         }
+        self::assertGreaterThan(2, count(array_intersect($result['games'][0], $result['games'][2])));
     }
 
     /** 출현 횟수보다 미출현 기간으로 시작 번호를 고르고 마지막 번호로 연결합니다. */
@@ -75,19 +73,6 @@ class ChainPlannerTest extends TestCase
         self::assertSame([10, 2, 30], array_slice($result['traces'][0]['chain'], 0, 3));
     }
 
-    /** 궁합수가 과거 게임에 있으면 다음 순위로 내려가며 동반 출현 0회도 사용합니다. */
-    public function test_used_neighbors_are_skipped_and_zero_pairs_fill_remaining_games(): void
-    {
-        $frequency = $missing = array_fill(1, 45, 0);
-        $pairs = array_fill(1, 45, array_fill(1, 45, 0));
-        $pairs[7][1] = 100;
-        $pairs[7][8] = 50;
-        $result = (new ChainPlanner)->select($frequency, $missing, $pairs);
-        self::assertSame([7, 8], array_slice($result['traces'][1]['chain'], 0, 2));
-        self::assertSame(array_chunk(range(1, 30), 6), $result['games']);
-        self::assertCount(5, $result['attempted_seeds']);
-    }
-
     /** 시작 번호의 미출현 동률은 출현 횟수와 작은 번호 순서로 결정합니다. */
     public function test_seed_ties_use_frequency_then_number(): void
     {
@@ -96,7 +81,7 @@ class ChainPlannerTest extends TestCase
         $frequency[10] = $frequency[11] = 100;
         $result = (new ChainPlanner)->select($frequency, $missing, $pairs);
         self::assertSame(10, $result['traces'][0]['seed']);
-        self::assertCount(30, array_unique(array_merge(...$result['games'])));
+        self::assertCount(5, $result['games']);
     }
 
     /** 누락 이력과 중복 번호는 부분 통계로 결과를 만들지 못하게 거부합니다. */
