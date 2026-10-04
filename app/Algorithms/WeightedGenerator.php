@@ -58,7 +58,7 @@ final class WeightedGenerator implements RecordsSelections
                 $skipped = [];
                 while (true) {
                     if (++$attempts > 10000) {
-                        throw new RuntimeException('직전 게임과 최대 2개 중복 조건을 만족하는 가중 조합을 만들지 못했습니다. 다시 실행하세요.');
+                        throw new RuntimeException('직전 게임과 최대 1개 중복 조건을 만족하는 가중 조합을 만들지 못했습니다. 다시 실행하세요.');
                     }
                     $unavailable = [...$excluded, ...$skipped];
                     $query = DB::table('weighted_pool_entries as e')
@@ -68,7 +68,7 @@ final class WeightedGenerator implements RecordsSelections
                     $row = (clone $query)->where('e.sequence', '>=', $start)->orderBy('e.sequence')->first()
                         ?? (clone $query)->where('e.sequence', '<', $start)->orderBy('e.sequence')->first();
                     if ($row === null) {
-                        throw new RuntimeException('직전 게임과 최대 2개 중복 조건을 만족하는 미발급 가중 후보가 없습니다.');
+                        throw new RuntimeException('직전 게임과 최대 1개 중복 조건을 만족하는 미발급 가중 후보가 없습니다.');
                     }
                     $skipped[] = (int) $row->id;
                     $numbers = $this->rules->numbers((array) $row);

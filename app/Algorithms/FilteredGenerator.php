@@ -83,7 +83,7 @@ final class FilteredGenerator implements ContextualNumberGenerator
             }
             /** 제한에 도달하면 조건을 완화하거나 부분 결과를 저장하지 않습니다. */
             if (count($games) !== $count) {
-                throw new RuntimeException('직전 게임과 최대 2개 중복 조건을 만족하는 필터 조합을 만들지 못했습니다. 후보 구성을 확인하거나 다시 실행하세요.');
+                throw new RuntimeException('직전 게임과 최대 1개 중복 조건을 만족하는 필터 조합을 만들지 못했습니다. 후보 구성을 확인하거나 다시 실행하세요.');
             }
 
             return ['games' => $games, 'draw_no' => $target, 'metadata' => ['basis_round' => $latest, 'draws_hash' => $hash, 'base_version' => $state->base_version, 'prepared_at' => $state->prepared_at, 'statistics' => json_decode($state->statistics, true, 512, JSON_THROW_ON_ERROR)]];

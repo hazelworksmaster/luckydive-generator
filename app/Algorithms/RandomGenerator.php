@@ -17,7 +17,7 @@ final class RandomGenerator implements NumberGenerator
         return 'random-v1';
     }
 
-    /** 1~45에서 직접 추출하고 동일 조합 및 직전 게임과 3개 이상 겹치는 후보를 제외합니다.
+    /** 1~45에서 직접 추출하고 동일 조합 및 직전 게임과 2개 이상 겹치는 후보를 제외합니다.
      * @return list<list<int>>
      */
     public function generate(int $count): array

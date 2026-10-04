@@ -17,7 +17,7 @@ final class SpreadPlanner
             'draws_hash' => $statistics['draws_hash']];
     }
 
-    /** 상위 5개 시작 번호를 예약하고 직전 게임과 최대 2개 중복을 허용합니다. */
+    /** 상위 5개 시작 번호를 예약하고 직전 게임과 최대 1개 중복을 허용합니다. */
     public function select(array $frequency, array $pairs): array
     {
         $ranked = range(1, 45);

@@ -40,10 +40,10 @@ class FrequentSpreadGeneratorTest extends TestCase
         $first = $service->execute(5, null, false, 'frequent-spread-v1');
         foreach ($first['games'] as $index => $game) {
             if ($index > 0) {
-                self::assertLessThanOrEqual(2, count(array_intersect($game, $first['games'][$index - 1])));
+                self::assertLessThanOrEqual(1, count(array_intersect($game, $first['games'][$index - 1])));
             }
         }
-        self::assertSame('previous-overlap-v2', $first['metadata']['selection_rule']);
+        self::assertSame('previous-overlap-v3', $first['metadata']['selection_rule']);
         self::assertSame(4, $first['draw_no']);
         self::assertSame(3, $first['metadata']['basis_round']);
         self::assertSame([1, 7, 8, 9, 10, 11], $first['metadata']['traces'][0]['chain']);
@@ -89,7 +89,7 @@ class FrequentSpreadGeneratorTest extends TestCase
             && $request->hasHeader('Authorization', 'Bearer test-frequent-token')
             && count($request['games']) === 5
             && collect($request['games'])->every(fn ($game, $index) => $index === 0
-                || count(array_intersect($game, $request['games'][$index - 1])) <= 2));
+                || count(array_intersect($game, $request['games'][$index - 1])) <= 1));
     }
 
     /** 과거 재현은 뒤 회차 정정에 영향받지 않고 보너스도 통계에 사용하지 않습니다. */

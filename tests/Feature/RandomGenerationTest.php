@@ -13,7 +13,7 @@ class RandomGenerationTest extends TestCase
 {
     use RefreshDatabase;
 
-    /** 최대 수량에서도 번호 유효성·동일 조합 제외·직전 게임과 최대 2개 중복을 보장합니다. */
+    /** 최대 수량에서도 번호 유효성·동일 조합 제외·직전 게임과 최대 1개 중복을 보장합니다. */
     public function test_full_batch_has_valid_unique_combinations(): void
     {
         $games = (new RandomGenerator)->generate(100);
@@ -21,7 +21,7 @@ class RandomGenerationTest extends TestCase
         $this->assertCount(100, array_unique(array_map('serialize', $games)));
         foreach ($games as $index => $game) {
             if ($index > 0) {
-                $this->assertLessThanOrEqual(2, count(array_intersect($game, $games[$index - 1])));
+                $this->assertLessThanOrEqual(1, count(array_intersect($game, $games[$index - 1])));
             }
             $this->assertCount(6, $game);
             $this->assertCount(6, array_unique($game));

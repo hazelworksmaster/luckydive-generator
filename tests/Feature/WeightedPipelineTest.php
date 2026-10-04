@@ -111,7 +111,7 @@ class WeightedPipelineTest extends TestCase
     {
         $this->prepare();
         foreach (DB::table('weighted_pool_entries')->orderBy('sequence')->get() as $index => $entry) {
-            $tail = array_slice(range(10 + $index * 4, 13 + $index * 4), 0, 6 - $shared);
+            $tail = array_slice(range(10 + $index * 5, 14 + $index * 5), 0, 6 - $shared);
             $numbers = [...array_slice([1, 2, 3], 0, $shared), ...$tail];
             DB::table('weighted_pool_entries')->where('id', $entry->id)->update(
                 array_combine(['number1', 'number2', 'number3', 'number4', 'number5', 'number6'], $numbers)
@@ -119,10 +119,10 @@ class WeightedPipelineTest extends TestCase
         }
     }
 
-    /** 2개 중복은 허용하며 미리보기는 소비하지 않고 확정 후보만 발급 기록에 저장합니다. */
-    public function test_two_shared_numbers_are_allowed_and_only_accepted_games_are_saved(): void
+    /** 1개 중복은 허용하며 미리보기는 소비하지 않고 확정 후보만 발급 기록에 저장합니다. */
+    public function test_one_shared_number_is_allowed_and_only_accepted_games_are_saved(): void
     {
-        $this->setOverlapCandidates(2);
+        $this->setOverlapCandidates(1);
         $service = app(GenerateNumbers::class);
         $preview = $service->execute(5, 4, false, 'weighted-v2');
         $this->assertCount(5, $preview['games']);
@@ -130,19 +130,19 @@ class WeightedPipelineTest extends TestCase
         $result = $service->execute(5, 4, true, 'weighted-v2');
         foreach ($result['games'] as $index => $game) {
             if ($index > 0) {
-                $this->assertCount(2, array_intersect($game, $result['games'][$index - 1]));
+                $this->assertCount(1, array_intersect($game, $result['games'][$index - 1]));
             }
         }
         $this->assertDatabaseCount('weighted_selections', 5);
         $this->assertDatabaseCount('recommendation_runs', 1);
     }
 
-    /** 3개씩 겹치는 후보뿐이면 소진 후 실패하며 한 게임도 저장하거나 소비하지 않습니다. */
-    public function test_three_shared_numbers_fail_without_partial_issue(): void
+    /** 2개씩 겹치는 후보뿐이면 소진 후 실패하며 한 게임도 저장하거나 소비하지 않습니다. */
+    public function test_two_shared_numbers_fail_without_partial_issue(): void
     {
-        $this->setOverlapCandidates(3);
+        $this->setOverlapCandidates(2);
         $this->artisan('lotto:generate', ['--algorithm' => 'weighted-v2', '--count' => 2, '--save' => true])
-            ->expectsOutputToContain('최대 2개 중복 조건')->assertFailed();
+            ->expectsOutputToContain('최대 1개 중복 조건')->assertFailed();
         $this->assertDatabaseCount('weighted_selections', 0);
         $this->assertDatabaseCount('recommendation_runs', 0);
         $this->assertDatabaseCount('weighted_pool_entries', 5);

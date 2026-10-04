@@ -38,14 +38,14 @@ class ChainPlannerTest extends TestCase
         }
     }
 
-    /** 직전 게임의 시작 번호 재사용과 2개 중복을 허용하고 전체 반복은 유한합니다. */
-    public function test_adjacent_overlap_allows_two_and_finishes_with_unique_games(): void
+    /** 직전 게임의 시작 번호 재사용과 1개 중복을 허용하고 전체 반복은 유한합니다. */
+    public function test_adjacent_overlap_allows_one_and_finishes_with_unique_games(): void
     {
         $frequency = $missing = array_fill(1, 45, 0);
         $pairs = array_fill(1, 45, array_fill(1, 45, 0));
         $result = (new ChainPlanner)->select($frequency, $missing, $pairs);
         self::assertSame([1, 2], array_slice(array_column($result['traces'], 'seed'), 0, 2));
-        self::assertSame([2, 1, 7, 8, 9, 10], $result['traces'][1]['chain']);
+        self::assertSame([2, 7, 8, 9, 10, 11], $result['traces'][1]['chain']);
         self::assertCount(5, array_unique(array_map('json_encode', $result['games'])));
         self::assertLessThanOrEqual(45, count($result['attempted_seeds']));
         foreach ($result['games'] as $index => $game) {
@@ -53,7 +53,7 @@ class ChainPlannerTest extends TestCase
             self::assertGreaterThanOrEqual(1, min($game));
             self::assertLessThanOrEqual(45, max($game));
             if ($index > 0) {
-                self::assertLessThanOrEqual(2, count(array_intersect($game, $result['games'][$index - 1])));
+                self::assertLessThanOrEqual(1, count(array_intersect($game, $result['games'][$index - 1])));
             }
         }
         self::assertGreaterThan(2, count(array_intersect($result['games'][0], $result['games'][2])));

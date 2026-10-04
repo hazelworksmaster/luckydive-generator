@@ -16,7 +16,7 @@ final class ChainPlanner
         return [...$result, 'draws_hash' => $statistics['draws_hash']];
     }
 
-    /** 미출현 순으로 시작하고 직전 게임과 최대 2개 중복을 허용하며 유한 단계로 연결합니다. */
+    /** 미출현 순으로 시작하고 직전 게임과 최대 1개 중복을 허용하며 유한 단계로 연결합니다. */
     public function select(array $frequency, array $missing, array $pairs): array
     {
         $overdue = range(1, 45);

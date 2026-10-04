@@ -44,7 +44,7 @@ final class OverdueChainGenerator implements ContextualNumberGenerator
 
         return ['games' => $result['games'], 'draw_no' => $target, 'metadata' => [
             /** 기존 요청과 구별할 수 있도록 게임 간 중복 제외 규칙을 기록합니다. */
-            'selection_rule' => 'previous-overlap-v3',
+            'selection_rule' => 'previous-overlap-v4',
             'basis_round' => $basis, 'draws_hash' => $result['draws_hash'],
             'attempted_seeds' => $result['attempted_seeds'], 'traces' => $result['traces'],
         ]];
